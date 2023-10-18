@@ -1,0 +1,37 @@
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+canvas {
+    background-color: aqua;
+}
+
+#game-canvas {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+}
+
+#fps {
+    display: block;
+    pointer-events: none;
+    user-select: none;
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 100;
+    font-size: 12px;
+}
+
+#copter-select {
+    position: fixed;
+    left: calc(50% - 3 * 65px);
+}
+#copter-select > img {
+    cursor: pointer;
+    width: 64px;
+}
+
+.selected {
+    border: 3px solid red;
+}

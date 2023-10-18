@@ -1,0 +1,50 @@
+The Plan
+
+Stage 1:
+"Player" can move around the map
+
+Map displays towers, walls etc.
+
+
+Stage 2:
+"Player" can shoot
+ >bullets dissapear after  certain time
+ >bullets bounce off walls
+ >destroy tower
+
+"Player" can build
+ >not too close to other towers & walls
+ >walls connect correctly
+
+
+Stage 3:
+"Player" hitbox
+ >bounces off grey walls
+ >dies to enemy walls
+
+
+Stage 4:
+"Bots"
+ >move around (at first random?)
+ >shoot at "Player"
+ >build
+ >die to "Player" walls & bullets
+
+
+Stage 5:
+Defuse round cycle
+ >3 min bomb planting timer (1 min to defuse)
+ >5s waiting screen/buy screen for different copters
+ >money
+
+
+Stage 6:
+Defuse items
+ >Shield protects from 1 bullet
+ >Emp destroys towers
+ >Tower hp
+ >Build range
+
+
+Stage 7:
+improve performance and such stuff
