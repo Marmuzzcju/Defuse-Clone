@@ -21,5 +21,9 @@
     <script src="index.js"></script>
     <script src="event-listener.js"></script>
     <script src="class.js"></script>
+    <div id="settings">
+        <textarea id="map-file-input" onfocus="this.select();">[Enter map file here]</textarea></br>
+        <button id="load-map-file" onclick="loadMapFile(document.querySelector('#map-file-input').value);">Load map</button>
+    </div>
 </body>
 </html>

@@ -32,6 +32,13 @@ canvas {
     width: 64px;
 }
 
+#settings {
+    position: fixed;
+    top: 50px;
+    left: 50px;
+    opacity: .5;
+}
+
 .selected {
     border: 3px solid red;
 }

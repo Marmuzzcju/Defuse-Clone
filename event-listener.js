@@ -55,7 +55,6 @@ document.addEventListener('keyup', (event) => {
 document.querySelector('#game-canvas').addEventListener('mousedown', (event) =>{
     if(event.button === 0){
         player.shooting = true;
-        console.log(player.shooting);
         return;
     }
     if(event.button === 2){
@@ -65,7 +64,6 @@ document.querySelector('#game-canvas').addEventListener('mousedown', (event) =>{
 document.querySelector('#game-canvas').addEventListener('mouseup', (event) =>{
     player.shooting = event.button === 0 ? false : player.shooting;
     if(!player.shooting) player.wantsToBuild = false;
-    console.log(player.shooting);
 })
 document.querySelector('#game-canvas').addEventListener('mousemove', (event) =>{
     player.aimingAt.x = event.clientX;
@@ -73,3 +71,19 @@ document.querySelector('#game-canvas').addEventListener('mousemove', (event) =>{
 })
 
 document.addEventListener('contextmenu', (e) => {e.preventDefault();})
+/*
+
+
+
+
+
+
+
+document.addEventListener('keydown', (event) => {
+    if(event.key === 'q'){
+        defly.selectSuperpower(5);
+    }else if(event.key === 'r'){
+        defly.respawn();
+    }
+})
+*/
