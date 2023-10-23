@@ -695,7 +695,7 @@ function buildMap(mapFile = "", format = "defly") {
         })
         //walls
         for (let c = 3; c < tower.length; c++) {
-          mapData.walls.push([index, Number(tower[c], tColor)]);
+          mapData.walls.push([index, Number(tower[c]-1, tColor)]);
         }
       });
 
