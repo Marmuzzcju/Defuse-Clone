@@ -1,5 +1,5 @@
 class Bullet {
-    constructor(vel = 1, position = {x : 0, y : 0}, aimAngle = 0, lifespan = 1, owner = 1){
+    constructor(vel = 1, position = {x : 0, y : 0}, aimAngle = 0, lifespan = 1, owner = 2){
         this.position = {
             x : position.x,
             y : position.y

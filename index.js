@@ -11,57 +11,58 @@ const WALL_WIDTH = 12;
 const TOWER_WIDTH = 12;
 const PLAYER_WIDTH = 10;
 const GRID_WIDTH = 50;
+const UNIT_WIDTH = GRID_WIDTH / 2;
 
 const defuseCopter = {
-  basic : {
-    copterSpeed : 260, 
-    bulletSpeed : 260,
-    bulletLifespan : 1.7,
-    reloadTime : 0.75,
-    inaccuracy : 0,
-    bulletCount : 1,
+  basic: {
+    copterSpeed: 260,
+    bulletSpeed: 260,
+    bulletLifespan: 1.7,
+    reloadTime: 0.75,
+    inaccuracy: 0,
+    bulletCount: 1,
   },
-  drone : {
-    copterSpeed : 230,
-    bulletSpeed : 300,
-    bulletLifespan : 1.5,
-    reloadTime : 0.5,
-    inaccuracy : 0.06,
-    bulletCount : 1,
+  drone: {
+    copterSpeed: 230,
+    bulletSpeed: 300,
+    bulletLifespan: 1.5,
+    reloadTime: 0.5,
+    inaccuracy: 0.06,
+    bulletCount: 1,
   },
-  shotgun : {
-    copterSpeed : 230,
-    bulletSpeed : 260,
-    bulletLifespan : 1.1,
-    reloadTime : 1,
-    inaccuracy : 0.03,
-    bulletCount : 5,
+  shotgun: {
+    copterSpeed: 230,
+    bulletSpeed: 260,
+    bulletLifespan: 1.1,
+    reloadTime: 1,
+    inaccuracy: 0.03,
+    bulletCount: 5,
   },
-  minisnipe : {
-    copterSpeed : 210,
-    bulletSpeed : 320,
-    bulletLifespan : 2,
-    reloadTime : 0.75,
-    inaccuracy : 0.03,
-    bulletCount : 1,
+  minisnipe: {
+    copterSpeed: 210,
+    bulletSpeed: 320,
+    bulletLifespan: 2,
+    reloadTime: 0.75,
+    inaccuracy: 0.03,
+    bulletCount: 1,
   },
-  machinegun : {
-    copterSpeed : 175,
-    bulletSpeed : 260,//!
-    bulletLifespan : 1.25,
-    reloadTime : 0.2,
-    inaccuracy : 0.08,
-    bulletCount : 1,
+  machinegun: {
+    copterSpeed: 175,
+    bulletSpeed: 260, //!
+    bulletLifespan: 1.25,
+    reloadTime: 0.2,
+    inaccuracy: 0.08,
+    bulletCount: 1,
   },
-  sniper : {
-    copterSpeed : 180,
-    bulletSpeed : 525,
-    bulletLifespan : 2.4,
-    reloadTime : 2,
-    inaccuracy : 0.004,
-    bulletCount : 1,
-  }
-}
+  sniper: {
+    copterSpeed: 180,
+    bulletSpeed: 525,
+    bulletLifespan: 2.4,
+    reloadTime: 2,
+    inaccuracy: 0.004,
+    bulletCount: 1,
+  },
+};
 
 const colors = {
   1: "rgb(77,77,77)",
@@ -119,7 +120,7 @@ const player = {
   shooting: false,
   wantsToBuild: false,
   shootingCooldown: 0,
-  copter : 'basic',
+  copter: "basic",
 };
 const fov = {
   width: 0,
@@ -216,8 +217,8 @@ function updatePlayer() {
 }
 
 function updatePlayerPosition() {
-  let xMov = (player.movement.right - player.movement.left);
-  let yMov = (player.movement.down - player.movement.up);
+  let xMov = player.movement.right - player.movement.left;
+  let yMov = player.movement.down - player.movement.up;
   xMov *= yMov != 0 ? 0.71 : 1;
   yMov *= xMov != 0 ? 0.71 : 1;
   player.position.x += xMov * defuseCopter[player.copter].copterSpeed * delta;
@@ -240,24 +241,36 @@ function checkShoot() {
   if (player.shootingCooldown > 0) player.shootingCooldown -= delta;
   if (player.shooting && player.shootingCooldown <= 0) {
     //spawn a bullet
-    createBullets(player.position, player.aimingAt, defuseCopter[player.copter].inaccuracy, defuseCopter[player.copter].bulletSpeed, defuseCopter[player.copter].bulletLifespan, defuseCopter[player.copter].bulletCount);
+    createBullets(
+      player.position,
+      player.aimingAt,
+      defuseCopter[player.copter].inaccuracy,
+      defuseCopter[player.copter].bulletSpeed,
+      defuseCopter[player.copter].bulletLifespan,
+      defuseCopter[player.copter].bulletCount
+    );
     //gameData.bullets.push({position : {x : player.position.x, y : player.position.y}, velocity : {x : -20, y : 10}, lifespawn : 5})
     player.shootingCooldown = defuseCopter[player.copter].reloadTime;
   }
 }
 
-function createBullets(position, aim, inaccuracy, bulletSpeed, bulletLifespan, bulletCount){
-  for(let c = -((bulletCount-1)/2); c < ((bulletCount-1)/2+1); c++){
-    let left = aim.x > (fov.width/2) ? 0 : Math.PI;
-    let shootingAngle = Math.atan((aim.y - (fov.height/2)) / (aim.x - (fov.width/2))) + left;
-    shootingAngle += randomFloat(-Math.PI*inaccuracy, Math.PI*inaccuracy) + inaccuracy*c*2*Math.PI;
+function createBullets(
+  position,
+  aim,
+  inaccuracy,
+  bulletSpeed,
+  bulletLifespan,
+  bulletCount
+) {
+  for (let c = -((bulletCount - 1) / 2); c < (bulletCount - 1) / 2 + 1; c++) {
+    let left = aim.x > fov.width / 2 ? 0 : Math.PI;
+    let shootingAngle =
+      Math.atan((aim.y - fov.height / 2) / (aim.x - fov.width / 2)) + left;
+    shootingAngle +=
+      randomFloat(-Math.PI * inaccuracy, Math.PI * inaccuracy) +
+      inaccuracy * c * 2 * Math.PI;
     gameData.bullets.push(
-      new Bullet(
-        bulletSpeed,
-        position,
-        shootingAngle,
-        bulletLifespan
-      )
+      new Bullet(bulletSpeed, position, shootingAngle, bulletLifespan)
     );
   }
 }
@@ -284,7 +297,8 @@ function checkBuild() {
           x,
           y
         ) <
-        WALL_WIDTH + 2 * BULLET_WIDTH
+          WALL_WIDTH + 2 * BULLET_WIDTH &&
+        wall[2] != 1
       )
         canBuildHere = false;
     });
@@ -558,10 +572,12 @@ function drawPlayers() {
   );
 }
 
-function selectCopter(newCopter){
-  document.querySelector(`#select-${player.copter}`).classList.remove('selected');
+function selectCopter(newCopter) {
+  document
+    .querySelector(`#select-${player.copter}`)
+    .classList.remove("selected");
   player.copter = newCopter;
-  document.querySelector(`#select-${player.copter}`).classList.add('selected');
+  document.querySelector(`#select-${player.copter}`).classList.add("selected");
 }
 
 function loadMapFile(mapFile) {
@@ -573,36 +589,62 @@ function loadMapFile(mapFile) {
   //mapData.spawns = [];
   let newMapData = mapFile.split(/\s+/);
   newMapData.forEach((identifier, position) => {
-    switch(identifier){
-      case 'd':{
-        mapData.towers.push({x : Number(newMapData[position+2])*GRID_WIDTH, y : Number(newMapData[position+3])*GRID_WIDTH, t : isNaN(Number(newMapData[position+4])) ? 1 : newMapData[position+4]})
+    switch (identifier) {
+      case "MAP_WIDTH": {
+        mapData.width = newMapData[position + 1] * UNIT_WIDTH;
         break;
       }
-      case 'l':{
-        mapData.walls.push([Number(newMapData[position+1]), Number(newMapData[position+2]), Number(mapData.towers[newMapData[position+1]].t)]);
+      case "MAP_HEIGHT": {
+        mapData.height = newMapData[position + 1] * UNIT_WIDTH;
         break;
       }
-      case 'z':{
+      case "d": {
+        mapData.towers.push({
+          x: Number(newMapData[position + 2]) * UNIT_WIDTH,
+          y: Number(newMapData[position + 3]) * UNIT_WIDTH,
+          t: isNaN(Number(newMapData[position + 4]))
+            ? 1
+            : newMapData[position + 4],
+        });
         break;
       }
-      case 's':{
+      case "l": {
+        mapData.walls.push([
+          Number(newMapData[position + 1]) - 1,
+          Number(newMapData[position + 2]) - 1,
+          Number(mapData.towers[newMapData[position + 1]].t),
+        ]);
+        break;
+      }
+      case "z": {
+        break;
+      }
+      case "s": {
         let team = {
-          id : Number(newMapData[position+1])-1,
-        }
-        team.name = team.id > 0 ? 'red' : 'blue';
-        mapData.spawns[team.id] = {team : team.name, x : Number(newMapData[position+2])*GRID_WIDTH-GRID_WIDTH/2, y : Number(newMapData[position+3])*GRID_WIDTH-GRID_WIDTH/2};
+          id: Number(newMapData[position + 1]) - 1,
+        };
+        team.name = team.id > 0 ? "red" : "blue";
+        mapData.spawns[team.id] = {
+          team: team.name,
+          x: Number(newMapData[position + 2]) * UNIT_WIDTH - UNIT_WIDTH / 2,
+          y: Number(newMapData[position + 3]) * UNIT_WIDTH - UNIT_WIDTH / 2,
+        };
         break;
       }
-      case 't':{
+      case "t": {
         let type = {
-          id : Number(newMapData[position+1])
-        }
-        type.type = type.id > 0 ? 'b' : 'a';
-        mapData.bombs[type.id] = {type : type.type, x : Number(newMapData[position+2])*GRID_WIDTH, y : Number(newMapData[position+3])*GRID_WIDTH};
+          id: Number(newMapData[position + 1]),
+        };
+        type.type = type.id > 0 ? "b" : "a";
+        mapData.bombs[type.id] = {
+          type: type.type,
+          x: Number(newMapData[position + 2]) * UNIT_WIDTH,
+          y: Number(newMapData[position + 3]) * UNIT_WIDTH,
+        };
         break;
       }
     }
-  })
+  });
   //working here but nrn idk
   /*let newMapData = JSON.parse(mapFile);
   mapFile.width = newMapData.width;for different map formats later
