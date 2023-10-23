@@ -510,7 +510,7 @@ function drawObstacles() {
       ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
       ctx.stroke();
     } catch (er) {
-      console.log(er);
+      //console.log(er);
     }
   });
 
