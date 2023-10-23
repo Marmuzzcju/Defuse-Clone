@@ -659,5 +659,7 @@ function checkUrl(){
     //let subs = url.substring(15);
     let identifier = url.substring(15, 23);
     console.log(identifier);
+  }else{
+    console.log(`Url standard: ${url}`);
   }
 }
