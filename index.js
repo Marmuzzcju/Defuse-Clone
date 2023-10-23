@@ -580,71 +580,141 @@ function selectCopter(newCopter) {
   document.querySelector(`#select-${player.copter}`).classList.add("selected");
 }
 
-function buildMap(mapFile) {
+function buildMap(mapFile = "", format = "defly") {
   console.log(mapFile);
+  console.log(format);
   mapData.towers = [];
   mapData.walls = [];
   mapData.areas = [];
   mapData.bombs = [];
   //mapData.spawns = [];
-  let newMapData = mapFile.split(/\s+/);
-  newMapData.forEach((identifier, position) => {
-    switch (identifier) {
-      case "MAP_WIDTH": {
-        mapData.width = newMapData[position + 1] * UNIT_WIDTH;
-        break;
-      }
-      case "MAP_HEIGHT": {
-        mapData.height = newMapData[position + 1] * UNIT_WIDTH;
-        break;
-      }
-      case "d": {
-        mapData.towers.push({
-          x: Number(newMapData[position + 2]) * UNIT_WIDTH,
-          y: Number(newMapData[position + 3]) * UNIT_WIDTH,
-          t: isNaN(Number(newMapData[position + 4]))
-            ? 1
-            : newMapData[position + 4],
-        });
-        break;
-      }
-      case "l": {
-        mapData.walls.push([
-          Number(newMapData[position + 1]) - 1,
-          Number(newMapData[position + 2]) - 1,
-          Number(mapData.towers[newMapData[position + 1]].t),
-        ]);
-        break;
-      }
-      case "z": {
-        break;
-      }
-      case "s": {
-        let team = {
-          id: Number(newMapData[position + 1]) - 1,
-        };
-        team.name = team.id > 0 ? "red" : "blue";
-        mapData.spawns[team.id] = {
-          team: team.name,
-          x: Number(newMapData[position + 2]) * UNIT_WIDTH - UNIT_WIDTH / 2,
-          y: Number(newMapData[position + 3]) * UNIT_WIDTH - UNIT_WIDTH / 2,
-        };
-        break;
-      }
-      case "t": {
-        let type = {
-          id: Number(newMapData[position + 1]),
-        };
-        type.type = type.id > 0 ? "b" : "a";
-        mapData.bombs[type.id] = {
-          type: type.type,
-          x: Number(newMapData[position + 2]) * UNIT_WIDTH,
-          y: Number(newMapData[position + 3]) * UNIT_WIDTH,
-        };
-        break;
-      }
+  switch (format) {
+    case "defly": {
+      let newMapData = mapFile.split(/\s+/);
+      newMapData.forEach((identifier, position) => {
+        switch (identifier) {
+          case "MAP_WIDTH": {
+            mapData.width = newMapData[position + 1] * UNIT_WIDTH;
+            break;
+          }
+          case "MAP_HEIGHT": {
+            mapData.height = newMapData[position + 1] * UNIT_WIDTH;
+            break;
+          }
+          case "d": {
+            mapData.towers.push({
+              x: Number(newMapData[position + 2]) * UNIT_WIDTH,
+              y: Number(newMapData[position + 3]) * UNIT_WIDTH,
+              t: isNaN(Number(newMapData[position + 4]))
+                ? 1
+                : newMapData[position + 4],
+            });
+            break;
+          }
+          case "l": {
+            mapData.walls.push([
+              Number(newMapData[position + 1]) - 1,
+              Number(newMapData[position + 2]) - 1,
+              Number(mapData.towers[newMapData[position + 1]].t),
+            ]);
+            break;
+          }
+          case "z": {
+            break;
+          }
+          case "s": {
+            let team = {
+              id: Number(newMapData[position + 1]) - 1,
+            };
+            team.name = team.id > 0 ? "red" : "blue";
+            mapData.spawns[team.id] = {
+              team: team.name,
+              x: Number(newMapData[position + 2]) * UNIT_WIDTH - UNIT_WIDTH / 2,
+              y: Number(newMapData[position + 3]) * UNIT_WIDTH - UNIT_WIDTH / 2,
+            };
+            break;
+          }
+          case "t": {
+            let type = {
+              id: Number(newMapData[position + 1]),
+            };
+            type.type = type.id > 0 ? "b" : "a";
+            mapData.bombs[type.id] = {
+              type: type.type,
+              x: Number(newMapData[position + 2]) * UNIT_WIDTH,
+              y: Number(newMapData[position + 3]) * UNIT_WIDTH,
+            };
+            break;
+          }
+        }
+      });
+      break;
     }
-  });
+    case 'compact':{
+      let mapData = mapFile.split("|");
+
+      //map size
+      let newMapSize = mapData[0].split(",");
+      mapData.width = Number(newMapSize[0]) > 0 ? Number(newMapSize[0]) * UNIT_WIDTH : mapData.width;
+      mapData.height = Number(newMapSize[1]) > 0 ? Number(newMapSize[1]) * UNIT_WIDTH : mapData.height;
+
+      //koth bounds
+      //dont need em rn
+      //kothBounds = mapData[1].split(",").length < 4 ? [] : mapData[1].split(",");
+
+      //defuse bombs
+      let bombData = mapData[2].split(",");
+      for (let c = 0; bombData.length > c; c += 2) {
+        mapData.bombs[c / 2] = {
+          type : c/2 == 0 ? 'a' : 'b',
+          x : bombData[0 + c] * UNIT_WIDTH,
+          y : bombData[1 + c] * UNIT_WIDTH,
+        }
+      }
+
+      //defuse spawns
+      let spawnData = mapData[3].split(",");
+      for (let c = 0; spawnData.length > c; c += 3) {
+        mapData.spawns[c/3] = {
+          team : c/3 == 0 ? 'red' : 'blue',
+          x : spawnData[0 + c] * UNIT_WIDTH,
+          y : spawnData[1 + c] * UNIT_WIDTH,
+        }
+        //rotation: spawnData[2 + c],
+      }
+
+      //towers (and walls)
+      let towerData = mapData[4].split(";");
+      towerData.forEach((rawTower, index) => {
+        let tower = rawTower.split(",");
+        let tColor = tower[2] === "" ? 1 : tower[2];
+        mapData.towers.push({
+          t : tColor,
+          x : tower[0] * UNIT_WIDTH,
+          y : tower[1] * UNIT_WIDTH,
+        })
+        //walls
+        for (let c = 3; c < tower.length; c++) {
+          mapData.walls.push([index, Number(tower[c], tColor)]);
+        }
+      });
+
+      //shading
+      /*we can ignore that for now
+      let shadingData = mapData[5].split(";");
+      shadingData.forEach((rawShading) => {
+        let shading = rawShading.split(",");
+        let ids = [];
+        shading.forEach((tId) => {
+          ids.push(Number(tId) + startingTowerID - 1);
+        });
+        shadedAreas.push(ids);
+        buildShading(ids);
+      });
+      */
+      break;
+    }
+  }
   //working here but nrn idk
   /*let newMapData = JSON.parse(mapFile);
   mapFile.width = newMapData.width;for different map formats later
@@ -653,19 +723,20 @@ function buildMap(mapFile) {
 
 setup();
 
-function checkUrl(){
+function checkUrl() {
   let url = window.location.search;
-  if(url != ''){
+  if (url != "") {
     //let subs = url.substring(15);0123456789
     let identifier = url.substring(1, 9);
     console.log(identifier);
-    switch(identifier){
-      case 'loadMap:'{
+    switch (identifier) {
+      case "loadMap:": {
         let mapData = url.substring(9);
-        buildMap(mapData);
+        buildMap(mapData, "compact");
+        break;
       }
     }
-  }else{
+  } else {
     console.log(`Url standard: ${url}`);
   }
 }
