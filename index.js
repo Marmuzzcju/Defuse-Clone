@@ -492,22 +492,26 @@ function drawObstacles() {
   });
 
   mapData.walls.forEach((tAr) => {
-    let sX = mapData.towers[tAr[0]].x;
-    let sY = mapData.towers[tAr[0]].y;
-    let eX = mapData.towers[tAr[1]].x;
-    let eY = mapData.towers[tAr[1]].y;
-    ctx.strokeStyle = colors[`b${tAr[2]}`];
-    ctx.lineWidth = WALL_WIDTH;
-    ctx.beginPath();
-    ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
-    ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
-    ctx.stroke();
-    ctx.strokeStyle = colors[tAr[2]];
-    ctx.lineWidth = WALL_WIDTH - 3;
-    ctx.beginPath();
-    ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
-    ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
-    ctx.stroke();
+    try {
+      let sX = mapData.towers[tAr[0]].x;
+      let sY = mapData.towers[tAr[0]].y;
+      let eX = mapData.towers[tAr[1]].x;
+      let eY = mapData.towers[tAr[1]].y;
+      ctx.strokeStyle = colors[`b${tAr[2]}`];
+      ctx.lineWidth = WALL_WIDTH;
+      ctx.beginPath();
+      ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
+      ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
+      ctx.stroke();
+      ctx.strokeStyle = colors[tAr[2]];
+      ctx.lineWidth = WALL_WIDTH - 3;
+      ctx.beginPath();
+      ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
+      ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
+      ctx.stroke();
+    } catch (er) {
+      console.log(er);
+    }
   });
 
   ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
@@ -650,13 +654,19 @@ function buildMap(mapFile = "", format = "defly") {
       });
       break;
     }
-    case 'compact':{
+    case "compact": {
       let newMapData = mapFile.split("|");
 
       //map size
       let newMapSize = newMapData[0].split(",");
-      mapData.width = Number(newMapSize[0]) > 0 ? Number(newMapSize[0]) * UNIT_WIDTH : mapData.width;
-      mapData.height = Number(newMapSize[1]) > 0 ? Number(newMapSize[1]) * UNIT_WIDTH : mapData.height;
+      mapData.width =
+        Number(newMapSize[0]) > 0
+          ? Number(newMapSize[0]) * UNIT_WIDTH
+          : mapData.width;
+      mapData.height =
+        Number(newMapSize[1]) > 0
+          ? Number(newMapSize[1]) * UNIT_WIDTH
+          : mapData.height;
 
       //koth bounds
       //dont need em rn
@@ -666,20 +676,20 @@ function buildMap(mapFile = "", format = "defly") {
       let bombData = newMapData[2].split(",");
       for (let c = 0; bombData.length > c; c += 2) {
         mapData.bombs[c / 2] = {
-          type : c/2 == 0 ? 'a' : 'b',
-          x : bombData[0 + c] * UNIT_WIDTH,
-          y : bombData[1 + c] * UNIT_WIDTH,
-        }
+          type: c / 2 == 0 ? "a" : "b",
+          x: bombData[0 + c] * UNIT_WIDTH,
+          y: bombData[1 + c] * UNIT_WIDTH,
+        };
       }
 
       //defuse spawns
       let spawnData = newMapData[3].split(",");
       for (let c = 0; spawnData.length > c; c += 3) {
-        mapData.spawns[c/3] = {
-          team : c/3 == 0 ? 'red' : 'blue',
-          x : spawnData[0 + c] * UNIT_WIDTH,
-          y : spawnData[1 + c] * UNIT_WIDTH,
-        }
+        mapData.spawns[c / 3] = {
+          team: c / 3 == 0 ? "red" : "blue",
+          x: spawnData[0 + c] * UNIT_WIDTH,
+          y: spawnData[1 + c] * UNIT_WIDTH,
+        };
         //rotation: spawnData[2 + c],
       }
 
@@ -689,13 +699,13 @@ function buildMap(mapFile = "", format = "defly") {
         let tower = rawTower.split(",");
         let tColor = tower[2] === "" ? 1 : tower[2];
         mapData.towers.push({
-          t : tColor,
-          x : tower[0] * UNIT_WIDTH,
-          y : tower[1] * UNIT_WIDTH,
-        })
+          t: tColor,
+          x: tower[0] * UNIT_WIDTH,
+          y: tower[1] * UNIT_WIDTH,
+        });
         //walls
         for (let c = 3; c < tower.length; c++) {
-          mapData.walls.push([index, Number(tower[c])-1, tColor]);
+          mapData.walls.push([index, Number(tower[c]) - 1, tColor]);
         }
       });
 
