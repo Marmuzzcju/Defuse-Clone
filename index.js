@@ -651,19 +651,19 @@ function buildMap(mapFile = "", format = "defly") {
       break;
     }
     case 'compact':{
-      let mapData = mapFile.split("|");
+      let newMapData = mapFile.split("|");
 
       //map size
-      let newMapSize = mapData[0].split(",");
+      let newMapSize = newMapData[0].split(",");
       mapData.width = Number(newMapSize[0]) > 0 ? Number(newMapSize[0]) * UNIT_WIDTH : mapData.width;
       mapData.height = Number(newMapSize[1]) > 0 ? Number(newMapSize[1]) * UNIT_WIDTH : mapData.height;
 
       //koth bounds
       //dont need em rn
-      //kothBounds = mapData[1].split(",").length < 4 ? [] : mapData[1].split(",");
+      //kothBounds = newMapData[1].split(",").length < 4 ? [] : newMapData[1].split(",");
 
       //defuse bombs
-      let bombData = mapData[2].split(",");
+      let bombData = newMapData[2].split(",");
       for (let c = 0; bombData.length > c; c += 2) {
         mapData.bombs[c / 2] = {
           type : c/2 == 0 ? 'a' : 'b',
@@ -673,7 +673,7 @@ function buildMap(mapFile = "", format = "defly") {
       }
 
       //defuse spawns
-      let spawnData = mapData[3].split(",");
+      let spawnData = newMapData[3].split(",");
       for (let c = 0; spawnData.length > c; c += 3) {
         mapData.spawns[c/3] = {
           team : c/3 == 0 ? 'red' : 'blue',
@@ -684,7 +684,7 @@ function buildMap(mapFile = "", format = "defly") {
       }
 
       //towers (and walls)
-      let towerData = mapData[4].split(";");
+      let towerData = newMapData[4].split(";");
       towerData.forEach((rawTower, index) => {
         let tower = rawTower.split(",");
         let tColor = tower[2] === "" ? 1 : tower[2];
@@ -701,7 +701,7 @@ function buildMap(mapFile = "", format = "defly") {
 
       //shading
       /*we can ignore that for now
-      let shadingData = mapData[5].split(";");
+      let shadingData = newMapData[5].split(";");
       shadingData.forEach((rawShading) => {
         let shading = rawShading.split(",");
         let ids = [];
