@@ -654,10 +654,10 @@ function loadMapFile(mapFile) {
 setup();
 
 function checkUrl(){
-  let url = window.location.pathname;
-  if(url != '/Defuse-Clone/'){
+  let url = window.location.search;
+  if(url != ''){
     //let subs = url.substring(15);
-    let identifier = url.substring(15, 23);
+    let identifier = url.substring(0, 8);
     console.log(identifier);
   }else{
     console.log(`Url standard: ${url}`);
