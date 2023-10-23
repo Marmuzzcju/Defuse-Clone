@@ -652,3 +652,12 @@ function loadMapFile(mapFile) {
 }
 
 setup();
+
+function checkUrl(){
+  let url = window.location.pathname;
+  if(url != '/Defuse-Clone/'){
+    //let subs = url.substring(15);
+    let identifier = url.substring(15, 23);
+    console.log(identifier);
+  }
+}
