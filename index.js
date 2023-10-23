@@ -580,7 +580,7 @@ function selectCopter(newCopter) {
   document.querySelector(`#select-${player.copter}`).classList.add("selected");
 }
 
-function loadMapFile(mapFile) {
+function buildMap(mapFile) {
   console.log(mapFile);
   mapData.towers = [];
   mapData.walls = [];
@@ -656,9 +656,15 @@ setup();
 function checkUrl(){
   let url = window.location.search;
   if(url != ''){
-    //let subs = url.substring(15);
-    let identifier = url.substring(0, 8);
+    //let subs = url.substring(15);0123456789
+    let identifier = url.substring(1, 9);
     console.log(identifier);
+    switch(identifier){
+      case 'loadMap:'{
+        let mapData = url.substring(9);
+        buildMap(mapData);
+      }
+    }
   }else{
     console.log(`Url standard: ${url}`);
   }
