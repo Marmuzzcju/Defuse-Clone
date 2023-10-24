@@ -492,7 +492,6 @@ function drawObstacles() {
   });
 
   mapData.walls.forEach((tAr) => {
-    try {
       let sX = mapData.towers[tAr[0]].x;
       let sY = mapData.towers[tAr[0]].y;
       let eX = mapData.towers[tAr[1]].x;
@@ -509,9 +508,6 @@ function drawObstacles() {
       ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
       ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
       ctx.stroke();
-    } catch (er) {
-      //console.log(er);
-    }
   });
 
   ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
@@ -733,20 +729,12 @@ function buildMap(mapFile = "", format = "defly") {
 
 setup();
 
-function checkUrl() {
-  let url = window.location.search;
-  if (url != "") {
-    //let subs = url.substring(15);0123456789
-    let identifier = url.substring(1, 9);
-    console.log(identifier);
-    switch (identifier) {
-      case "loadMap:": {
-        let mapData = url.substring(9);
-        buildMap(mapData, "compact");
-        break;
-      }
+function checkSettings() {
+  //let url = window.location.search;
+  if (typeof Storage !== undefined){
+    let mapToBuild = localStorage.getItem('auto-saved-map');
+    if(!!mapToBuild){
+      buildMap(mapToBuild, 'defly');
     }
-  } else {
-    console.log(`Url standard: ${url}`);
   }
 }
