@@ -64,6 +64,14 @@ const defuseCopter = {
     inaccuracy: 0.004,
     bulletCount: 1,
   },
+  weapon7: {
+    copterSpeed: 180,
+    bulletSpeed: 150,
+    bulletLifespan: 10,
+    reloadTime: 1.2,
+    inaccuracy: 0,
+    bulletCount: 1,
+  }
 };
 
 const colors = {
