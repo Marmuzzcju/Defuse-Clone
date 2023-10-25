@@ -207,15 +207,16 @@ function gameLoop() {
   gameClock += delta;
   delta /= 1000; //ms -> s
   let counter = 0;
-  do{
+  do {
     localDelta = delta > MAX_DELTA ? MAX_DELTA : delta;
     updatePlayer();
     updateBullets();
     updateOtherStuff();
     delta -= MAX_DELTA;
     counter++;
-    if(counter > 1 && counter < 10) console.log(`Counter smh: ${counter} - Delta: ${delta}`);
-  }while(delta > MAX_DELTA && counter < 100);
+    if (counter > 1 && counter < 10)
+      console.log(`Counter smh: ${counter} - Delta: ${delta}`);
+  } while (delta > MAX_DELTA && counter < 100);
   draw();
   delta = new Date().getTime();
 }
@@ -232,8 +233,10 @@ function updatePlayerPosition() {
   let yMov = player.movement.down - player.movement.up;
   xMov *= yMov != 0 ? 0.71 : 1;
   yMov *= xMov != 0 ? 0.71 : 1;
-  player.position.x += xMov * defuseCopter[player.copter].copterSpeed * localDelta;
-  player.position.y += yMov * defuseCopter[player.copter].copterSpeed * localDelta;
+  player.position.x +=
+    xMov * defuseCopter[player.copter].copterSpeed * localDelta;
+  player.position.y +=
+    yMov * defuseCopter[player.copter].copterSpeed * localDelta;
   player.position.x =
     player.position.x < 0
       ? 0
@@ -320,88 +323,88 @@ function checkBuild() {
 function updateBullets() {
   let fadedBullets = [];
   gameData.bullets.forEach((bullet, bIndex) => {
-    let priorBouncedWalls = [];
+    let bounceCounter = 0;
+    let bounceAngle = 0;
 
-    bullet.position.x += bullet.velocity.x * localDelta;
-    bullet.position.y += bullet.velocity.y * localDelta;
+    let thisLocalDelta = localDelta > bullet.lastBounceDelta ? localDelta : bullet.lastBounceDelta + 0.001;
+    bullet.position.x += bullet.velocity.x * thisLocalDelta;
+    bullet.position.y += bullet.velocity.y * thisLocalDelta;
     //check for collisions with walls, players, towers
 
     //walls
     mapData.walls.forEach((wall) => {
-      let xT1 = mapData.towers[wall[0]].x;
-      let yT1 = mapData.towers[wall[0]].y;
-      let xT2 = mapData.towers[wall[1]].x;
-      let yT2 = mapData.towers[wall[1]].y;
-      let bulletDistanceToWall = getDistanceToLine(
-        xT1,
-        yT1,
-        xT2,
-        yT2,
-        bullet.position.x,
-        bullet.position.y
-      );
-      if (bulletDistanceToWall * 2 <= WALL_WIDTH + BULLET_WIDTH) {
-        if (
-          !bullet.hasBouncedFrom.includes(
-            `${wall.tag}|${gameClock - localDelta * 1000}`
-          )
-        ) {
-          bullet.hasBouncedFrom.push(`${wall.tag}|${gameClock}`);
-          bullet.velocity = bounceBullet(
+        let xT1 = mapData.towers[wall[0]].x;
+        let yT1 = mapData.towers[wall[0]].y;
+        let xT2 = mapData.towers[wall[1]].x;
+        let yT2 = mapData.towers[wall[1]].y;
+        let bulletDistanceToWall = getDistanceToLine(
+          xT1,
+          yT1,
+          xT2,
+          yT2,
+          bullet.position.x,
+          bullet.position.y
+        );
+        if (bulletDistanceToWall * 2 <= WALL_WIDTH + BULLET_WIDTH) {
+          bounceCounter++;
+          bounceAngle += getBounceBulletAngle(
             bullet.velocity,
             { x: xT1, y: yT1 },
             { x: xT2, y: yT2 }
           );
         }
-      }
     });
+    if(bounceCounter > 0){
+      bullet.velocity = bounceBullet(bullet.velocity, bounceAngle/bounceCounter);
+      bullet.lastBounceDelta = delta;
+    }else{
+      bullet.lastBounceDelta = 0;
+    }
 
     //towers
     let bAlive = true;
     mapData.towers.forEach((tower, index) => {
-      let distanceToBullet = calculateDistance(
-        tower.x,
-        tower.y,
-        bullet.position.x,
-        bullet.position.y
-      );
-      if (distanceToBullet < BULLET_WIDTH + TOWER_WIDTH) {
-        console.log("HIT!");
-        if (tower.t != bullet.ownedBy && bAlive) {
-          bAlive = false;
-          bullet.lifespan = 0;
-          if (tower.t != 1) mapData.towers.splice(index, 1); //only if not grey tower
+      if (bAlive) {
+        let distanceToBullet = calculateDistance(
+          tower.x,
+          tower.y,
+          bullet.position.x,
+          bullet.position.y
+        );
+        if (distanceToBullet < BULLET_WIDTH + TOWER_WIDTH) {
+          console.log("HIT!");
+          if (tower.t != bullet.ownedBy) {
+            bAlive = false;
+            bullet.lifespan = 0;
+            if (tower.t != 1) mapData.towers.splice(index, 1); //only if not grey tower
+          }
         }
       }
     });
 
-    bullet.lifespan -= localDelta;
+    bullet.lifespan -= thisLocalDelta;
     if (bullet.lifespan <= 0) fadedBullets.push(bIndex);
-    bullet.hasBouncedFrom.forEach((wallTags, wallTagId) => {
-      if (wallTags.split("|")[1] != gameClock) {
-        priorBouncedWalls.push(wallTagId);
-      }
-    });
-    priorBouncedWalls.forEach((id, counter) => {
-      bullet.hasBouncedFrom.splice(id + counter, 1);
-    });
   });
   fadedBullets.forEach((bulletIndex, counter) => {
     gameData.bullets.splice(bulletIndex - counter, 1);
   });
 }
 
-function bounceBullet(bulletVector, t1, t2) {
-  let velo = Math.sqrt(
-    Math.pow(bulletVector.x, 2) + Math.pow(bulletVector.y, 2)
-  );
+function getBounceBulletAngle(bulletVector, t1, t2) {
   let sign = bulletVector.x < 0 ? 0 : 1;
   let alpha = Math.atan((t2.y - t1.y) / (t2.x - t1.x));
   let beta = sign * Math.PI - Math.atan(bulletVector.y / bulletVector.x);
   let gamma = Math.PI - alpha - beta;
   let delta = Math.PI - beta - 2 * gamma;
   //ONLY BOUNCE ONCE EVERY 2 TICS <-- add this (edit: idk)
-  return { x: Math.cos(delta) * velo, y: Math.sin(delta) * velo };
+  return delta;
+}
+function bounceBullet(bulletVector, angle){
+  let velo = Math.sqrt(
+    Math.pow(bulletVector.x, 2) + Math.pow(bulletVector.y, 2)
+  );
+
+  return { x: Math.cos(angle) * velo, y: Math.sin(angle) * velo };
 }
 
 function bounceFromTower(bulletPos, bulletVect, towerPos) {
@@ -503,22 +506,22 @@ function drawObstacles() {
   });
 
   mapData.walls.forEach((tAr) => {
-      let sX = mapData.towers[tAr[0]].x;
-      let sY = mapData.towers[tAr[0]].y;
-      let eX = mapData.towers[tAr[1]].x;
-      let eY = mapData.towers[tAr[1]].y;
-      ctx.strokeStyle = colors[`b${tAr[2]}`];
-      ctx.lineWidth = WALL_WIDTH;
-      ctx.beginPath();
-      ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
-      ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
-      ctx.stroke();
-      ctx.strokeStyle = colors[tAr[2]];
-      ctx.lineWidth = WALL_WIDTH - 3;
-      ctx.beginPath();
-      ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
-      ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
-      ctx.stroke();
+    let sX = mapData.towers[tAr[0]].x;
+    let sY = mapData.towers[tAr[0]].y;
+    let eX = mapData.towers[tAr[1]].x;
+    let eY = mapData.towers[tAr[1]].y;
+    ctx.strokeStyle = colors[`b${tAr[2]}`];
+    ctx.lineWidth = WALL_WIDTH;
+    ctx.beginPath();
+    ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
+    ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
+    ctx.stroke();
+    ctx.strokeStyle = colors[tAr[2]];
+    ctx.lineWidth = WALL_WIDTH - 3;
+    ctx.beginPath();
+    ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
+    ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
+    ctx.stroke();
   });
 
   ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
@@ -742,10 +745,10 @@ setup();
 
 function checkSettings() {
   //let url = window.location.search;
-  if (typeof Storage !== undefined){
-    let mapToBuild = localStorage.getItem('auto-saved-map');
-    if(!!mapToBuild){
-      buildMap(mapToBuild, 'defly');
+  if (typeof Storage !== undefined) {
+    let mapToBuild = localStorage.getItem("auto-saved-map");
+    if (!!mapToBuild) {
+      buildMap(mapToBuild, "defly");
     }
   }
 }

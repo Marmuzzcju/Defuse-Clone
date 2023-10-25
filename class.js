@@ -11,7 +11,7 @@ class Bullet {
         }
 
         this.lifespan = lifespan;
-        this.hasBouncedFrom = [];
+        this.lastBounceDelta = 0;
         this.ownedBy = owner;
     }
 }
