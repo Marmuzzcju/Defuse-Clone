@@ -13,6 +13,8 @@ const PLAYER_WIDTH = 10;
 const GRID_WIDTH = 50;
 const UNIT_WIDTH = GRID_WIDTH / 2;
 
+const MAX_DELTA = 0.1;
+
 const defuseCopter = {
   basic: {
     copterSpeed: 260,
@@ -99,6 +101,7 @@ const colors = {
 let gameClock = 0; //total playtime in ms
 
 let delta = 0;
+let localDelta = 0;
 
 const player = {
   position: {
@@ -174,6 +177,7 @@ images.bombs.b.src = "images/defly-defuse-bombSpotB.png";
 
 function setup() {
   updateFov();
+  delta = new Date().getTime();
   gameLoop();
 }
 
@@ -202,9 +206,16 @@ function gameLoop() {
   delta = new Date().getTime() - delta;
   gameClock += delta;
   delta /= 1000; //ms -> s
-  updatePlayer();
-  updateBullets();
-  updateOtherStuff();
+  let counter = 0;
+  do{
+    localDelta = delta > MAX_DELTA ? MAX_DELTA : delta;
+    updatePlayer();
+    updateBullets();
+    updateOtherStuff();
+    delta -= MAX_DELTA;
+    counter++;
+    if(counter > 1 && counter < 10) console.log(`Counter smh: ${counter} - Delta: ${delta}`);
+  }while(delta > MAX_DELTA && counter < 100);
   draw();
   delta = new Date().getTime();
 }
@@ -221,8 +232,8 @@ function updatePlayerPosition() {
   let yMov = player.movement.down - player.movement.up;
   xMov *= yMov != 0 ? 0.71 : 1;
   yMov *= xMov != 0 ? 0.71 : 1;
-  player.position.x += xMov * defuseCopter[player.copter].copterSpeed * delta;
-  player.position.y += yMov * defuseCopter[player.copter].copterSpeed * delta;
+  player.position.x += xMov * defuseCopter[player.copter].copterSpeed * localDelta;
+  player.position.y += yMov * defuseCopter[player.copter].copterSpeed * localDelta;
   player.position.x =
     player.position.x < 0
       ? 0
@@ -238,7 +249,7 @@ function updatePlayerPosition() {
 }
 
 function checkShoot() {
-  if (player.shootingCooldown > 0) player.shootingCooldown -= delta;
+  if (player.shootingCooldown > 0) player.shootingCooldown -= localDelta;
   if (player.shooting && player.shootingCooldown <= 0) {
     //spawn a bullet
     createBullets(
@@ -311,8 +322,8 @@ function updateBullets() {
   gameData.bullets.forEach((bullet, bIndex) => {
     let priorBouncedWalls = [];
 
-    bullet.position.x += bullet.velocity.x * delta;
-    bullet.position.y += bullet.velocity.y * delta;
+    bullet.position.x += bullet.velocity.x * localDelta;
+    bullet.position.y += bullet.velocity.y * localDelta;
     //check for collisions with walls, players, towers
 
     //walls
@@ -332,7 +343,7 @@ function updateBullets() {
       if (bulletDistanceToWall * 2 <= WALL_WIDTH + BULLET_WIDTH) {
         if (
           !bullet.hasBouncedFrom.includes(
-            `${wall.tag}|${gameClock - delta * 1000}`
+            `${wall.tag}|${gameClock - localDelta * 1000}`
           )
         ) {
           bullet.hasBouncedFrom.push(`${wall.tag}|${gameClock}`);
@@ -364,7 +375,7 @@ function updateBullets() {
       }
     });
 
-    bullet.lifespan -= delta;
+    bullet.lifespan -= localDelta;
     if (bullet.lifespan <= 0) fadedBullets.push(bIndex);
     bullet.hasBouncedFrom.forEach((wallTags, wallTagId) => {
       if (wallTags.split("|")[1] != gameClock) {
@@ -435,7 +446,7 @@ function getDistanceToLine(wall1X, wall1Y, wall2X, wall2Y, point3X, point3Y) {
 //such as fps, igshop etc.
 function updateOtherStuff() {
   //only update fps ~3x/s
-  if (gameClock % 300 <= delta * 1000) {
+  if (gameClock % 300 <= localDelta * 1000) {
     fpsDisplay.innerHTML = `fps: ${Math.floor(1 / delta)} spf: ${delta}`;
   }
 }
@@ -615,7 +626,7 @@ function buildMap(mapFile = "", format = "defly") {
             mapData.walls.push([
               Number(newMapData[position + 1]) - 1,
               Number(newMapData[position + 2]) - 1,
-              Number(mapData.towers[newMapData[position + 1]].t),
+              Number(mapData.towers[newMapData[position + 1] - 1].t),
             ]);
             break;
           }
