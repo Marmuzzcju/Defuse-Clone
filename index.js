@@ -7,10 +7,10 @@ const ctx = canvas.getContext("2d");
 const fpsDisplay = document.querySelector("#fps");
 
 const BULLET_WIDTH = 7;
-const WALL_WIDTH = 12;
-const TOWER_WIDTH = 12;
+const WALL_WIDTH = 13;
+const TOWER_WIDTH = 13;
 const PLAYER_WIDTH = 10;
-const GRID_WIDTH = 50;
+const GRID_WIDTH = 44;
 const UNIT_WIDTH = GRID_WIDTH / 2;
 
 const MAX_DELTA = 0.1;
@@ -71,7 +71,7 @@ const defuseCopter = {
     reloadTime: 1.2,
     inaccuracy: 0,
     bulletCount: 1,
-  }
+  },
 };
 
 const colors = {
@@ -103,6 +103,20 @@ const colors = {
   b12: "rgb(74,127,0)",
   b13: "rgb(0,178,94)",
   b14: "rgb(0,0,0)",
+  f1: "rgba(77,77,77,0.5)",
+  f2: "rgba(61,93,255,0.5)",
+  f3: "rgba(253,53,53,0.5)",
+  f4: "rgba(0,128,55,0.5)",
+  f5: "rgba(255,128,42,0.5)",
+  f6: "rgba(146,75,255,0.5)",
+  f7: "rgba(85,213,255,0.5)",
+  f8: "rgba(24,226,31,0.5)",
+  f9: "rgba(246,89,255,0.5)",
+  f10: "rgba(247,255,42,0.5)",
+  f11: "rgba(255,95,174,0.5)",
+  f12: "rgba(147,254,0,0.5)",
+  f13: "rgba(0,255,188,0.5)",
+  f14: "rgba(0,0,0,0.5)",
 };
 
 //global variables
@@ -126,6 +140,8 @@ const player = {
     left: 0,
     right: 0,
   },
+  isStuck: false,
+  team: 2,
   money: 1000,
   score: 0,
   shooting: false,
@@ -237,26 +253,71 @@ function updatePlayer() {
 }
 
 function updatePlayerPosition() {
-  let xMov = player.movement.right - player.movement.left;
-  let yMov = player.movement.down - player.movement.up;
-  xMov *= yMov != 0 ? 0.71 : 1;
-  yMov *= xMov != 0 ? 0.71 : 1;
-  player.position.x +=
-    xMov * defuseCopter[player.copter].copterSpeed * localDelta;
-  player.position.y +=
-    yMov * defuseCopter[player.copter].copterSpeed * localDelta;
-  player.position.x =
-    player.position.x < 0
-      ? 0
-      : player.position.x < mapData.width
-      ? player.position.x
-      : mapData.width;
-  player.position.y =
-    player.position.y < 0
-      ? 0
-      : player.position.y < mapData.height
-      ? player.position.y
-      : mapData.height;
+  if (typeof player.isStuck === "boolean") {
+    let xMov = player.movement.right - player.movement.left;
+    let yMov = player.movement.down - player.movement.up;
+    xMov *= yMov != 0 ? 0.71 : 1;
+    yMov *= xMov != 0 ? 0.71 : 1;
+    player.position.x +=
+      xMov * defuseCopter[player.copter].copterSpeed * localDelta;
+    player.position.y +=
+      yMov * defuseCopter[player.copter].copterSpeed * localDelta;
+    player.position.x =
+      player.position.x < 0
+        ? 0
+        : player.position.x < mapData.width
+        ? player.position.x
+        : mapData.width;
+    player.position.y =
+      player.position.y < 0
+        ? 0
+        : player.position.y < mapData.height
+        ? player.position.y
+        : mapData.height;
+  }else{
+    player.position.x += Math.cos(player.isStuck) * defuseCopter[player.copter].copterSpeed * localDelta;
+    player.position.y += Math.sin(player.isStuck) * defuseCopter[player.copter].copterSpeed * localDelta;
+  }
+  checkPlayerWallCollision();
+}
+function checkPlayerWallCollision() {
+  let wallBounceCounter = 0;
+  player.isStuck = 0;
+  mapData.walls.forEach((wall) => {
+    if (wall[2] != player.team) {
+      //pass through own team walls obv
+      let distance = getDistanceToLine(
+        mapData.towers[wall[0]].x,
+        mapData.towers[wall[0]].y,
+        mapData.towers[wall[1]].x,
+        mapData.towers[wall[1]].y,
+        player.position.x,
+        player.position.y
+      );
+      if (distance < WALL_WIDTH + PLAYER_WIDTH) {
+        if (wall[2] == 1) {
+          //grey wall, bounce player
+          wallBounceCounter++;
+          player.isStuck += getBounceBulletAngle(
+            {
+              x: player.movement.right - player.movement.left,
+              y: player.movement.down - player.movement.up,
+            },
+            { x: mapData.towers[wall[0]].x, y: mapData.towers[wall[0]].y },
+            { x: mapData.towers[wall[1]].x, y: mapData.towers[wall[1]].y }
+          );
+        } else {
+          //enemy team wall, die
+          //unfinished
+        }
+      }
+    }
+  });
+  if (wallBounceCounter > 0) {
+    player.isStuck /= wallBounceCounter;
+  } else {
+    player.isStuck = false;
+  }
 }
 
 function checkShoot() {
@@ -269,7 +330,8 @@ function checkShoot() {
       defuseCopter[player.copter].inaccuracy,
       defuseCopter[player.copter].bulletSpeed,
       defuseCopter[player.copter].bulletLifespan,
-      defuseCopter[player.copter].bulletCount
+      defuseCopter[player.copter].bulletCount,
+      player.team
     );
     //gameData.bullets.push({position : {x : player.position.x, y : player.position.y}, velocity : {x : -20, y : 10}, lifespawn : 5})
     player.shootingCooldown = defuseCopter[player.copter].reloadTime;
@@ -282,7 +344,8 @@ function createBullets(
   inaccuracy,
   bulletSpeed,
   bulletLifespan,
-  bulletCount
+  bulletCount,
+  owner
 ) {
   for (let c = -((bulletCount - 1) / 2); c < (bulletCount - 1) / 2 + 1; c++) {
     let left = aim.x > fov.width / 2 ? 0 : Math.PI;
@@ -292,7 +355,7 @@ function createBullets(
       randomFloat(-Math.PI * inaccuracy, Math.PI * inaccuracy) +
       inaccuracy * c * 2 * Math.PI;
     gameData.bullets.push(
-      new Bullet(bulletSpeed, position, shootingAngle, bulletLifespan)
+      new Bullet(bulletSpeed, position, shootingAngle, bulletLifespan, owner)
     );
   }
 }
@@ -334,38 +397,44 @@ function updateBullets() {
     let bounceCounter = 0;
     let bounceAngle = 0;
 
-    let thisLocalDelta = localDelta > bullet.lastBounceDelta ? localDelta : bullet.lastBounceDelta + 0.001;
+    let thisLocalDelta =
+      localDelta > bullet.lastBounceDelta
+        ? localDelta
+        : bullet.lastBounceDelta + 0.001;
     bullet.position.x += bullet.velocity.x * thisLocalDelta;
     bullet.position.y += bullet.velocity.y * thisLocalDelta;
     //check for collisions with walls, players, towers
 
     //walls
     mapData.walls.forEach((wall) => {
-        let xT1 = mapData.towers[wall[0]].x;
-        let yT1 = mapData.towers[wall[0]].y;
-        let xT2 = mapData.towers[wall[1]].x;
-        let yT2 = mapData.towers[wall[1]].y;
-        let bulletDistanceToWall = getDistanceToLine(
-          xT1,
-          yT1,
-          xT2,
-          yT2,
-          bullet.position.x,
-          bullet.position.y
+      let xT1 = mapData.towers[wall[0]].x;
+      let yT1 = mapData.towers[wall[0]].y;
+      let xT2 = mapData.towers[wall[1]].x;
+      let yT2 = mapData.towers[wall[1]].y;
+      let bulletDistanceToWall = getDistanceToLine(
+        xT1,
+        yT1,
+        xT2,
+        yT2,
+        bullet.position.x,
+        bullet.position.y
+      );
+      if (bulletDistanceToWall * 2 <= WALL_WIDTH + BULLET_WIDTH) {
+        bounceCounter++;
+        bounceAngle += getBounceBulletAngle(
+          bullet.velocity,
+          { x: xT1, y: yT1 },
+          { x: xT2, y: yT2 }
         );
-        if (bulletDistanceToWall * 2 <= WALL_WIDTH + BULLET_WIDTH) {
-          bounceCounter++;
-          bounceAngle += getBounceBulletAngle(
-            bullet.velocity,
-            { x: xT1, y: yT1 },
-            { x: xT2, y: yT2 }
-          );
-        }
+      }
     });
-    if(bounceCounter > 0){
-      bullet.velocity = bounceBullet(bullet.velocity, bounceAngle/bounceCounter);
+    if (bounceCounter > 0) {
+      bullet.velocity = bounceBullet(
+        bullet.velocity,
+        bounceAngle / bounceCounter
+      );
       bullet.lastBounceDelta = delta;
-    }else{
+    } else {
       bullet.lastBounceDelta = 0;
     }
 
@@ -407,7 +476,7 @@ function getBounceBulletAngle(bulletVector, t1, t2) {
   //ONLY BOUNCE ONCE EVERY 2 TICS <-- add this (edit: idk)
   return delta;
 }
-function bounceBullet(bulletVector, angle){
+function bounceBullet(bulletVector, angle) {
   let velo = Math.sqrt(
     Math.pow(bulletVector.x, 2) + Math.pow(bulletVector.y, 2)
   );
@@ -465,7 +534,7 @@ function updateOtherStuff() {
 //draw functions
 function draw() {
   drawBackground(); //White Background + Grids
-  drawObstacles(); //1. Bombs, 2. Spawns, 3. Walls, 4. Towers, 5. Bullets
+  drawObstacles(); //1. Bombs, 2. Spawns, 3. Areas, 4. Walls, 5. Towers, 6. Bullets
   drawAnimations(); //For when towers & Players get destroyed + bullets fading out :P
   drawPlayers(); //Enemies & You
 }
@@ -497,6 +566,22 @@ function drawBackground() {
 }
 
 function drawObstacles() {
+  mapData.areas.forEach((area) => {
+    ctx.fillStyle = colors[`f${mapData.towers[area[0]].t}`];
+    ctx.beginPath();
+    ctx.moveTo(relToPlayer.x(mapData.towers[area[0]].x), relToPlayer.y(mapData.towers[area[0]].y));
+    area.forEach((edge) => {
+      try{
+        ctx.lineTo(relToPlayer.x(mapData.towers[edge].x), relToPlayer.y(mapData.towers[edge].y));
+      }
+      catch(er){
+        console.log(`Error -- Edge: ${edge}, Towers: ${mapData.towers.length}`);
+      }
+    });
+    ctx.fill();
+  })
+
+  ctx.lineWidth = 3;
   mapData.spawns.forEach((spawn) => {
     ctx.strokeStyle = spawn.team === "red" ? "red" : "blue";
     ctx.strokeRect(relToPlayer.x(spawn.x), relToPlayer.y(spawn.y), 225, 225);
@@ -602,9 +687,10 @@ function selectCopter(newCopter) {
   document.querySelector(`#select-${player.copter}`).classList.add("selected");
 }
 
-function buildMap(mapFile = "", format = "defly") {
+function buildMap(rawFile = "", format = "defly") {
+  let mapFile = rawFile.trimEnd();
   console.log(mapFile);
-  console.log(format);
+  console.log(`Loading map - map file format: ${format}`);
   mapData.towers = [];
   mapData.walls = [];
   mapData.areas = [];
@@ -642,6 +728,15 @@ function buildMap(mapFile = "", format = "defly") {
             break;
           }
           case "z": {
+            let thisShadingsID = [];
+            for (let c = 1; c < newMapData.length; c++) {
+              if (isNaN(Number(newMapData[position + c])) || !(newMapData[position + c] >= 0)) {
+                c = newMapData.length;
+                continue;
+              }
+              thisShadingsID.push(Number(newMapData[position + c] - 1));
+            }
+            mapData.areas.push(thisShadingsID);
             break;
           }
           case "s": {
