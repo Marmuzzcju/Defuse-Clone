@@ -274,9 +274,15 @@ function updatePlayerPosition() {
         : player.position.y < mapData.height
         ? player.position.y
         : mapData.height;
-  }else{
-    player.position.x += Math.cos(player.isStuck) * defuseCopter[player.copter].copterSpeed * localDelta;
-    player.position.y += Math.sin(player.isStuck) * defuseCopter[player.copter].copterSpeed * localDelta;
+  } else {
+    player.position.x +=
+      Math.cos(player.isStuck) *
+      defuseCopter[player.copter].copterSpeed *
+      localDelta;
+    player.position.y +=
+      Math.sin(player.isStuck) *
+      defuseCopter[player.copter].copterSpeed *
+      localDelta;
   }
   checkPlayerWallCollision();
 }
@@ -569,17 +575,22 @@ function drawObstacles() {
   mapData.areas.forEach((area) => {
     ctx.fillStyle = colors[`f${mapData.towers[area[0]].t}`];
     ctx.beginPath();
-    ctx.moveTo(relToPlayer.x(mapData.towers[area[0]].x), relToPlayer.y(mapData.towers[area[0]].y));
+    ctx.moveTo(
+      relToPlayer.x(mapData.towers[area[0]].x),
+      relToPlayer.y(mapData.towers[area[0]].y)
+    );
     area.forEach((edge) => {
-      try{
-        ctx.lineTo(relToPlayer.x(mapData.towers[edge].x), relToPlayer.y(mapData.towers[edge].y));
-      }
-      catch(er){
+      try {
+        ctx.lineTo(
+          relToPlayer.x(mapData.towers[edge].x),
+          relToPlayer.y(mapData.towers[edge].y)
+        );
+      } catch (er) {
         console.log(`Error -- Edge: ${edge}, Towers: ${mapData.towers.length}`);
       }
     });
     ctx.fill();
-  })
+  });
 
   ctx.lineWidth = 3;
   mapData.spawns.forEach((spawn) => {
@@ -730,7 +741,10 @@ function buildMap(rawFile = "", format = "defly") {
           case "z": {
             let thisShadingsID = [];
             for (let c = 1; c < newMapData.length; c++) {
-              if (isNaN(Number(newMapData[position + c])) || !(newMapData[position + c] >= 0)) {
+              if (
+                isNaN(Number(newMapData[position + c])) ||
+                !(newMapData[position + c] >= 0)
+              ) {
                 c = newMapData.length;
                 continue;
               }
