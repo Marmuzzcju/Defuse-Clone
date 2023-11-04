@@ -141,6 +141,7 @@ const player = {
     right: 0,
   },
   isStuck: false,
+  connectedTo: 0,
   team: 2,
   money: 1000,
   score: 0,
@@ -154,40 +155,64 @@ const fov = {
   height: 0,
 };
 
-const mapData = {
+const permanentMapData = {
   width: 1000,
   height: 1000,
-  towers: [
-    { x: 0, y: 0, t: 1 },
-    { x: 30, y: 10, t: 1 },
-    { x: 800, y: 200, t: 1 },
-    { x: 445, y: 943, t: 1 },
-    { x: 700, y: 50, t: 1 },
-    { x: 200, y: 10, t: 1 },
-    { x: 800, y: 800, t: 1 },
-  ],
-  walls: [
-    [3, 4],
-    [2, 4],
-    [5, 6],
-  ],
-  areas: [],
+  towers: {
+    1: [
+      { x: 0, y: 0, t: 1 },
+      { x: 30, y: 10, t: 1 },
+      { x: 800, y: 200, t: 1 },
+      { x: 445, y: 943, t: 1 },
+      { x: 700, y: 50, t: 1 },
+      { x: 200, y: 10, t: 1 },
+      { x: 800, y: 800, t: 1 },
+    ], //grey
+    2: [], //blue
+    3: [], //red
+    4: [], //green
+  },
+  walls: {
+    1: [
+      [3, 4],
+      [2, 4],
+      [5, 6],
+    ], //grey
+    2: [], //blue
+    3: [], //red
+    4: [], //green
+  },
+  areas: {
+    1: [], //grey
+    2: [], //blue
+    3: [], //red
+    4: [], //green
+  },
   bombs: [
     { type: "a", x: 100, y: 100 },
     { type: "b", x: 400, y: 500 },
   ],
   spawns: [
-    { team: "red", x: 400, y: 20 },
-    { team: "blue", x: 100, y: 300 },
+    { x: 400, y: 20 },
+    { x: 100, y: 300 },
   ],
 };
-mapData.walls.forEach((wall) => {
-  wall.push(mapData.towers[wall[0]].t);
-});
+const mapData = {
+  width: 1000,
+  height: 1000,
+  towers: [],
+  walls: [],
+  areas: [],
+  bombs: [],
+  spawns: [],
+};
+
 const gameData = {
   player: [],
   bullets: [],
 };
+
+let towerRegister = {};
 
 //images
 const images = {
@@ -284,39 +309,47 @@ function updatePlayerPosition() {
       defuseCopter[player.copter].copterSpeed *
       localDelta;
   }
+  //mapData.towers
   checkPlayerWallCollision();
 }
 function checkPlayerWallCollision() {
   let wallBounceCounter = 0;
   player.isStuck = 0;
-  mapData.walls.forEach((wall) => {
-    if (wall[2] != player.team) {
-      //pass through own team walls obv
-      let distance = getDistanceToLine(
-        mapData.towers[wall[0]].x,
-        mapData.towers[wall[0]].y,
-        mapData.towers[wall[1]].x,
-        mapData.towers[wall[1]].y,
-        player.position.x,
-        player.position.y
-      );
-      if (distance < WALL_WIDTH + PLAYER_WIDTH) {
-        if (wall[2] == 1) {
-          //grey wall, bounce player
-          wallBounceCounter++;
-          player.isStuck += getBounceBulletAngle(
-            {
-              x: player.movement.right - player.movement.left,
-              y: player.movement.down - player.movement.up,
-            },
-            { x: mapData.towers[wall[0]].x, y: mapData.towers[wall[0]].y },
-            { x: mapData.towers[wall[1]].x, y: mapData.towers[wall[1]].y }
-          );
-        } else {
-          //enemy team wall, die
-          //unfinished
+  Object.entries(mapData.walls).forEach((wallSet) => {
+    if (wallSet[0] != player.team) {
+      wallSet[1].forEach((wall) => {
+        let distance = getDistanceToLine(
+          mapData.towers[wallSet[0]][towerRegister[wall[0]].ar].x,
+          mapData.towers[wallSet[0]][towerRegister[wall[0]].ar].y,
+          mapData.towers[wallSet[0]][towerRegister[wall[1]].ar].x,
+          mapData.towers[wallSet[0]][towerRegister[wall[1]].ar].y,
+          player.position.x,
+          player.position.y
+        );
+        if (distance < WALL_WIDTH + PLAYER_WIDTH) {
+          //colliding
+          if (wallSet[0] == 1) {
+            //grey wall, bounce player
+            wallBounceCounter++;
+            player.isStuck += getBounceBulletAngle(
+              {
+                x: player.movement.right - player.movement.left,
+                y: player.movement.down - player.movement.up,
+              },
+              {
+                x: mapData.towers[wallSet[0]][towerRegister[wall[0]].ar].x,
+                y: mapData.towers[wallSet[0]][towerRegister[wall[0]].ar].y,
+              },
+              {
+                x: mapData.towers[wallSet[0]][towerRegister[wall[1]].ar].x,
+                y: mapData.towers[wallSet[0]][towerRegister[wall[1]].ar].y,
+              }
+            );
+          } else {
+            //enemy wall, die
+          }
         }
-      }
+      });
     }
   });
   if (wallBounceCounter > 0) {
@@ -373,28 +406,35 @@ function checkBuild() {
   let x = player.position.x;
   let y = player.position.y;
   let canBuildHere = true;
-  mapData.towers.forEach((tower) => {
-    if (calculateDistance(tower.x, tower.y, x, y) < 4 * TOWER_WIDTH)
-      canBuildHere = false;
-  });
-  if (canBuildHere) {
-    mapData.walls.forEach((wall) => {
-      if (
-        getDistanceToLine(
-          mapData.towers[wall[0]].x,
-          mapData.towers[wall[0]].y,
-          mapData.towers[wall[1]].x,
-          mapData.towers[wall[1]].y,
-          x,
-          y
-        ) <
-          WALL_WIDTH + 2 * BULLET_WIDTH &&
-        wall[2] != 1
-      )
+  Object.entries(mapData.towers).forEach((towerSet) => {
+    towerSet[1].forEach((tower) => {
+      if (calculateDistance(tower.x, tower.y, x, y) < 4 * TOWER_WIDTH)
         canBuildHere = false;
     });
+  });
+  if (canBuildHere) {
+    Object.entries(mapData.walls).forEach((wallSet) => {
+      if (wallSet[0] != 1) {
+        //ignore grey walls
+        wallSet[1].forEach((wall) => {
+          if (
+            getDistanceToLine(
+              mapData.towers[wallSet[0]][towerRegister[wall[0]].ar].x,
+              mapData.towers[wallSet[0]][towerRegister[wall[0]].ar].y,
+              mapData.towers[wallSet[0]][towerRegister[wall[1]].ar].x,
+              mapData.towers[wallSet[0]][towerRegister[wall[1]].ar].y,
+              x,
+              y
+            ) <
+              WALL_WIDTH + 2 * BULLET_WIDTH &&
+            wall[2] != 1
+          )
+            canBuildHere = false;
+        });
+      }
+    });
   }
-  if (canBuildHere) mapData.towers.push({ x: x, y: y, t: 2 });
+  if (canBuildHere) mapData.towers[player.team].push({ x: x, y: y, t: 2 });
 }
 
 function updateBullets() {
@@ -412,26 +452,30 @@ function updateBullets() {
     //check for collisions with walls, players, towers
 
     //walls
-    mapData.walls.forEach((wall) => {
-      let xT1 = mapData.towers[wall[0]].x;
-      let yT1 = mapData.towers[wall[0]].y;
-      let xT2 = mapData.towers[wall[1]].x;
-      let yT2 = mapData.towers[wall[1]].y;
-      let bulletDistanceToWall = getDistanceToLine(
-        xT1,
-        yT1,
-        xT2,
-        yT2,
-        bullet.position.x,
-        bullet.position.y
-      );
-      if (bulletDistanceToWall * 2 <= WALL_WIDTH + BULLET_WIDTH) {
-        bounceCounter++;
-        bounceAngle += getBounceBulletAngle(
-          bullet.velocity,
-          { x: xT1, y: yT1 },
-          { x: xT2, y: yT2 }
-        );
+    Object.entries(mapData.walls).forEach((wallSet) => {
+      if (wallSet[0] != player.team) {
+        wallSet[1].forEach((wall) => {
+          let xT1 = mapData.towers[wallSet[0]][towerRegister[wall[0]].ar].x;
+          let yT1 = mapData.towers[wallSet[0]][towerRegister[wall[0]].ar].y;
+          let xT2 = mapData.towers[wallSet[0]][towerRegister[wall[1]].ar].x;
+          let yT2 = mapData.towers[wallSet[0]][towerRegister[wall[1]].ar].y;
+          let bulletDistanceToWall = getDistanceToLine(
+            xT1,
+            yT1,
+            xT2,
+            yT2,
+            bullet.position.x,
+            bullet.position.y
+          );
+          if (bulletDistanceToWall * 2 <= WALL_WIDTH + BULLET_WIDTH) {
+            bounceCounter++;
+            bounceAngle += getBounceBulletAngle(
+              bullet.velocity,
+              { x: xT1, y: yT1 },
+              { x: xT2, y: yT2 }
+            );
+          }
+        });
       }
     });
     if (bounceCounter > 0) {
@@ -446,22 +490,26 @@ function updateBullets() {
 
     //towers
     let bAlive = true;
-    mapData.towers.forEach((tower, index) => {
-      if (bAlive) {
-        let distanceToBullet = calculateDistance(
-          tower.x,
-          tower.y,
-          bullet.position.x,
-          bullet.position.y
-        );
-        if (distanceToBullet < BULLET_WIDTH + TOWER_WIDTH) {
-          console.log("HIT!");
-          if (tower.t != bullet.ownedBy) {
-            bAlive = false;
-            bullet.lifespan = 0;
-            if (tower.t != 1) mapData.towers.splice(index, 1); //only if not grey tower
+    Object.entries(mapData.towers).forEach((towerSet) => {
+      if (towerSet[0] != bullet.ownedBy) {
+        towerSet[1].forEach((tower, index) => {
+          if (bAlive) {
+            let distanceToBullet = calculateDistance(
+              tower.x,
+              tower.y,
+              bullet.position.x,
+              bullet.position.y
+            );
+            if (distanceToBullet < BULLET_WIDTH + TOWER_WIDTH) {
+              console.log("HIT!");
+              bAlive = false;
+              bullet.lifespan = 0;
+              if (towerSet[0] != 1) {
+                deleteTower(towerSet[0], index);
+              } //only if not grey tower
+            }
           }
-        }
+        });
       }
     });
 
@@ -470,6 +518,40 @@ function updateBullets() {
   });
   fadedBullets.forEach((bulletIndex, counter) => {
     gameData.bullets.splice(bulletIndex - counter, 1);
+  });
+}
+
+function deleteTower(team, towerIndex) {
+  mapData.towers[team].splice(towerIndex, 1);
+  let registerToDelete = 0;
+  towerRegister.forEach((dataSet, regIndex) => {
+    if (dataSet.t == team) {
+      if (ar == index) {
+        registerToDelete = regIndex;
+      } else if (ar > index) {
+        dataSet.ar--;
+      }
+    }
+  });
+  mapData.walls[team].forEach((wall, index) => {
+    if (
+      towerRegister[wall[0]].ar == towerIndex ||
+      towerRegister[wall[1]].ar == towerIndex
+    ) {
+      mapData.walls[team].splice(index, 1);
+    }
+  });
+  mapData.areas[team].forEach((area, index) => {
+    let hasToBeDeleted = false;
+    for (let c = 0; c < area.length; c++) {
+      if (towerRegister[area[c]].ar == towerIndex) {
+        hasToBeDeleted = true;
+        break;
+      }
+    }
+    if (hasToBeDeleted) {
+      mapData.areas[team].splice(index, 1);
+    }
   });
 }
 
@@ -572,29 +654,35 @@ function drawBackground() {
 }
 
 function drawObstacles() {
-  mapData.areas.forEach((area) => {
-    ctx.fillStyle = colors[`f${mapData.towers[area[0]].t}`];
-    ctx.beginPath();
-    ctx.moveTo(
-      relToPlayer.x(mapData.towers[area[0]].x),
-      relToPlayer.y(mapData.towers[area[0]].y)
-    );
-    area.forEach((edge) => {
-      try {
-        ctx.lineTo(
-          relToPlayer.x(mapData.towers[edge].x),
-          relToPlayer.y(mapData.towers[edge].y)
-        );
-      } catch (er) {
-        console.log(`Error -- Edge: ${edge}, Towers: ${mapData.towers.length}`);
-      }
+  Object.entries(mapData.areas).forEach((areaSet) => {
+    ctx.fillStyle = colors[`f${areaSet[0]}`];
+    areaSet[1].forEach((area) => {
+      ctx.beginPath();
+      ctx.moveTo(
+        relToPlayer.x(mapData.towers[areaSet[0]][towerRegister[area[0]].ar].x),
+        relToPlayer.y(mapData.towers[areaSet[0]][towerRegister[area[0]].ar].y)
+      );
+      area.forEach((edge) => {
+        try {
+          ctx.lineTo(
+            relToPlayer.x(mapData.towers[areaSet[0]][towerRegister[edge].ar].x),
+            relToPlayer.y(mapData.towers[areaSet[0]][towerRegister[edge].ar].y)
+          );
+        } catch (er) {
+          console.log(
+            `Error -- Edge: ${edge}, Towers: ${
+              mapData.towers[areaSet[0]].length
+            }`
+          );
+        }
+      });
+      ctx.fill();
     });
-    ctx.fill();
   });
 
   ctx.lineWidth = 3;
-  mapData.spawns.forEach((spawn) => {
-    ctx.strokeStyle = spawn.team === "red" ? "red" : "blue";
+  mapData.spawns.forEach((spawn, index) => {
+    ctx.strokeStyle = colors[`b${index + 1}`];
     ctx.strokeRect(relToPlayer.x(spawn.x), relToPlayer.y(spawn.y), 225, 225);
   });
 
@@ -609,47 +697,51 @@ function drawObstacles() {
     );
   });
 
-  mapData.walls.forEach((tAr) => {
-    let sX = mapData.towers[tAr[0]].x;
-    let sY = mapData.towers[tAr[0]].y;
-    let eX = mapData.towers[tAr[1]].x;
-    let eY = mapData.towers[tAr[1]].y;
-    ctx.strokeStyle = colors[`b${tAr[2]}`];
-    ctx.lineWidth = WALL_WIDTH;
-    ctx.beginPath();
-    ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
-    ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
-    ctx.stroke();
-    ctx.strokeStyle = colors[tAr[2]];
-    ctx.lineWidth = WALL_WIDTH - 3;
-    ctx.beginPath();
-    ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
-    ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
-    ctx.stroke();
+  Object.entries(mapData.walls).forEach((wallSet) => {
+    wallSet[1].forEach((wall) => {
+      let sX = mapData.towers[wallSet[0]][towerRegister[wall[0]].ar].x;
+      let sY = mapData.towers[wallSet[0]][towerRegister[wall[0]].ar].y;
+      let eX = mapData.towers[wallSet[0]][towerRegister[wall[1]].ar].x;
+      let eY = mapData.towers[wallSet[0]][towerRegister[wall[1]].ar].y;
+      ctx.lineWidth = WALL_WIDTH;
+      ctx.strokeStyle = colors[`b${wallSet[0]}`];
+      ctx.beginPath();
+      ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
+      ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
+      ctx.stroke();
+      ctx.strokeStyle = colors[wallSet[0]];
+      ctx.lineWidth = WALL_WIDTH - 3;
+      ctx.beginPath();
+      ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
+      ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
+      ctx.stroke();
+    });
   });
 
   ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
   ctx.lineWidth = 2;
-  mapData.towers.forEach((tower) => {
-    ctx.fillStyle = colors[tower.t];
-    ctx.beginPath();
-    ctx.arc(
-      relToPlayer.x(tower.x),
-      relToPlayer.y(tower.y),
-      TOWER_WIDTH,
-      2 * Math.PI,
-      false
-    );
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(
-      relToPlayer.x(tower.x),
-      relToPlayer.y(tower.y),
-      TOWER_WIDTH - 1,
-      2 * Math.PI,
-      false
-    );
-    ctx.stroke();
+  Object.entries(mapData.towers).forEach((towerSet) => {
+    ctx.fillStyle = colors[towerSet[0]];
+    towerSet[1].forEach((tower) => {
+      ctx.beginPath();
+      ctx.arc(
+        relToPlayer.x(tower.x),
+        relToPlayer.y(tower.y),
+        TOWER_WIDTH,
+        2 * Math.PI,
+        false
+      );
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(
+        relToPlayer.x(tower.x),
+        relToPlayer.y(tower.y),
+        TOWER_WIDTH - 1,
+        2 * Math.PI,
+        false
+      );
+      ctx.stroke();
+    });
   });
 
   gameData.bullets.forEach((bullet) => {
@@ -702,39 +794,44 @@ function buildMap(rawFile = "", format = "defly") {
   let mapFile = rawFile.trimEnd();
   console.log(mapFile);
   console.log(`Loading map - map file format: ${format}`);
-  mapData.towers = [];
-  mapData.walls = [];
-  mapData.areas = [];
-  mapData.bombs = [];
-  //mapData.spawns = [];
+  permanentMapData.towers = { 1: [], 2: [], 3: [], 4: [] };
+  permanentMapData.walls = { 1: [], 2: [], 3: [], 4: [] };
+  permanentMapData.areas = { 1: [], 2: [], 3: [], 4: [] };
+  permanentMapData.bombs = [];
+  permanentMapData.spawns = [];
+  towerRegister = {};
   switch (format) {
     case "defly": {
       let newMapData = mapFile.split(/\s+/);
       newMapData.forEach((identifier, position) => {
         switch (identifier) {
           case "MAP_WIDTH": {
-            mapData.width = newMapData[position + 1] * UNIT_WIDTH;
+            permanentMapData.width = newMapData[position + 1] * UNIT_WIDTH;
             break;
           }
           case "MAP_HEIGHT": {
-            mapData.height = newMapData[position + 1] * UNIT_WIDTH;
+            permanentMapData.height = newMapData[position + 1] * UNIT_WIDTH;
             break;
           }
           case "d": {
-            mapData.towers.push({
+            let t = isNaN(Number(newMapData[position + 4]))
+              ? 1
+              : newMapData[position + 4];
+            permanentMapData.towers[t].push({
               x: Number(newMapData[position + 2]) * UNIT_WIDTH,
               y: Number(newMapData[position + 3]) * UNIT_WIDTH,
-              t: isNaN(Number(newMapData[position + 4]))
-                ? 1
-                : newMapData[position + 4],
             });
+            towerRegister[newMapData[position + 1]] = {
+              t: t,
+              ar: permanentMapData.towers[t].length - 1,
+            };
             break;
           }
           case "l": {
-            mapData.walls.push([
-              Number(newMapData[position + 1]) - 1,
-              Number(newMapData[position + 2]) - 1,
-              Number(mapData.towers[newMapData[position + 1] - 1].t),
+            let t = towerRegister[newMapData[position + 1]].t;
+            permanentMapData.walls[t].push([
+              Number(newMapData[position + 1]),
+              Number(newMapData[position + 2]),
             ]);
             break;
           }
@@ -748,18 +845,18 @@ function buildMap(rawFile = "", format = "defly") {
                 c = newMapData.length;
                 continue;
               }
-              thisShadingsID.push(Number(newMapData[position + c] - 1));
+              thisShadingsID.push(Number(newMapData[position + c]));
             }
-            mapData.areas.push(thisShadingsID);
+            let t = towerRegister[newMapData[position + 1]].t;
+            permanentMapData.areas[t].push(thisShadingsID);
             break;
           }
           case "s": {
             let team = {
-              id: Number(newMapData[position + 1]) - 1,
+              id: Number(newMapData[position + 1]),
             };
             team.name = team.id > 0 ? "red" : "blue";
-            mapData.spawns[team.id] = {
-              team: team.name,
+            permanentMapData.spawns[team.id] = {
               x: Number(newMapData[position + 2]) * UNIT_WIDTH - UNIT_WIDTH / 2,
               y: Number(newMapData[position + 3]) * UNIT_WIDTH - UNIT_WIDTH / 2,
             };
@@ -770,7 +867,7 @@ function buildMap(rawFile = "", format = "defly") {
               id: Number(newMapData[position + 1]),
             };
             type.type = type.id > 0 ? "b" : "a";
-            mapData.bombs[type.id] = {
+            permanentMapData.bombs[type.id] = {
               type: type.type,
               x: Number(newMapData[position + 2]) * UNIT_WIDTH,
               y: Number(newMapData[position + 3]) * UNIT_WIDTH,
@@ -786,14 +883,14 @@ function buildMap(rawFile = "", format = "defly") {
 
       //map size
       let newMapSize = newMapData[0].split(",");
-      mapData.width =
+      permanentMapData.width =
         Number(newMapSize[0]) > 0
           ? Number(newMapSize[0]) * UNIT_WIDTH
-          : mapData.width;
-      mapData.height =
+          : permanentMapData.width;
+      permanentMapData.height =
         Number(newMapSize[1]) > 0
           ? Number(newMapSize[1]) * UNIT_WIDTH
-          : mapData.height;
+          : permanentMapData.height;
 
       //koth bounds
       //dont need em rn
@@ -802,7 +899,7 @@ function buildMap(rawFile = "", format = "defly") {
       //defuse bombs
       let bombData = newMapData[2].split(",");
       for (let c = 0; bombData.length > c; c += 2) {
-        mapData.bombs[c / 2] = {
+        permanentMapData.bombs[c / 2] = {
           type: c / 2 == 0 ? "a" : "b",
           x: bombData[0 + c] * UNIT_WIDTH,
           y: bombData[1 + c] * UNIT_WIDTH,
@@ -812,8 +909,7 @@ function buildMap(rawFile = "", format = "defly") {
       //defuse spawns
       let spawnData = newMapData[3].split(",");
       for (let c = 0; spawnData.length > c; c += 3) {
-        mapData.spawns[c / 3] = {
-          team: c / 3 == 0 ? "red" : "blue",
+        permanentMapData.spawns[c / 3 + 1] = {
           x: spawnData[0 + c] * UNIT_WIDTH,
           y: spawnData[1 + c] * UNIT_WIDTH,
         };
@@ -824,31 +920,32 @@ function buildMap(rawFile = "", format = "defly") {
       let towerData = newMapData[4].split(";");
       towerData.forEach((rawTower, index) => {
         let tower = rawTower.split(",");
-        let tColor = tower[2] === "" ? 1 : tower[2];
-        mapData.towers.push({
-          t: tColor,
+        let t = tower[2] === "" ? 1 : tower[2];
+        permanentMapData.towers[t].push({
           x: tower[0] * UNIT_WIDTH,
           y: tower[1] * UNIT_WIDTH,
         });
+        towerRegister[index + 1].push({
+          t: t,
+          ar: permanentMapData.towers[t].length,
+        });
         //walls
         for (let c = 3; c < tower.length; c++) {
-          mapData.walls.push([index, Number(tower[c]) - 1, tColor]);
+          permanentMapData.walls[t].push([index + 1, Number(tower[c]) - 1]);
         }
       });
 
       //shading
-      /*we can ignore that for now
       let shadingData = newMapData[5].split(";");
       shadingData.forEach((rawShading) => {
         let shading = rawShading.split(",");
         let ids = [];
         shading.forEach((tId) => {
-          ids.push(Number(tId) + startingTowerID - 1);
+          ids.push(Number(tId));
         });
-        shadedAreas.push(ids);
-        buildShading(ids);
+        let t = towerRegister[ids[0]].t;
+        permanentMapData.shading[t].push(ids);
       });
-      */
       break;
     }
   }
@@ -856,6 +953,16 @@ function buildMap(rawFile = "", format = "defly") {
   /*let newMapData = JSON.parse(mapFile);
   mapFile.width = newMapData.width;for different map formats later
   mapFile.height = newMapData.height;*/
+}
+
+function resetMap() {
+  mapData.width = permanentMapData.width;
+  mapData.height = permanentMapData.height;
+  mapData.towers = permanentMapData.towers;
+  mapData.walls = permanentMapData.walls;
+  mapData.areas = permanentMapData.areas;
+  mapData.spawns = permanentMapData.spawns;
+  mapData.bombs = permanentMapData.bombs;
 }
 
 setup();
@@ -866,6 +973,7 @@ function checkSettings() {
     let mapToBuild = localStorage.getItem("auto-saved-map");
     if (!!mapToBuild) {
       buildMap(mapToBuild, "defly");
+      resetMap();
     }
   }
 }
