@@ -9,7 +9,7 @@ const fpsDisplay = document.querySelector("#fps");
 const BULLET_WIDTH = 7;
 const WALL_WIDTH = 13;
 const TOWER_WIDTH = 13;
-const PLAYER_WIDTH = 10;
+const PLAYER_WIDTH = 5;
 const GRID_WIDTH = 44;
 const UNIT_WIDTH = GRID_WIDTH / 2;
 
@@ -141,7 +141,7 @@ const player = {
     right: 0,
   },
   isStuck: false,
-  connectedTo: 0,
+  connectedTo: false,
   team: 2,
   money: 1000,
   score: 0,
@@ -230,7 +230,7 @@ function setup() {
   gameLoop();
 }
 
-//functions for html stuff & autside gameloop
+//functions for html stuff & outside gameloop
 function updateFov() {
   fov.width = window.innerWidth;
   fov.height = window.innerHeight;
@@ -309,7 +309,19 @@ function updatePlayerPosition() {
       defuseCopter[player.copter].copterSpeed *
       localDelta;
   }
-  //mapData.towers
+  mapData.towers[player.team].forEach((tower, index) => {
+    if (
+      calculateDistance(
+        player.position.x,
+        player.position.y,
+        tower.x,
+        tower.y
+      ) <
+      TOWER_WIDTH + PLAYER_WIDTH
+    ) {
+      player.connectedTo = index;
+    }
+  });
   checkPlayerWallCollision();
 }
 function checkPlayerWallCollision() {
@@ -434,7 +446,12 @@ function checkBuild() {
       }
     });
   }
-  if (canBuildHere) mapData.towers[player.team].push({ x: x, y: y, t: 2 });
+  if (canBuildHere) {
+    mapData.towers[player.team].push({ x: x, y: y, t: 2 });
+    /*if (typeof player.connectedTo === "number") {
+      mapData.walls[player.team].push([])
+    }*/
+  }
 }
 
 function updateBullets() {
@@ -523,6 +540,15 @@ function updateBullets() {
 
 function deleteTower(team, towerIndex) {
   mapData.towers[team].splice(towerIndex, 1);
+  if (team == player.team) {
+    if (!towerIndex > player.connectedTo) {
+      if (towerIndex == player.connectedTo) {
+        player.connectedTo = false;
+      } else {
+        player.connectedTo--;
+      }
+    }
+  }
   let registerToDelete = 0;
   towerRegister.forEach((dataSet, regIndex) => {
     if (dataSet.t == team) {
@@ -553,6 +579,7 @@ function deleteTower(team, towerIndex) {
       mapData.areas[team].splice(index, 1);
     }
   });
+  towerRegister[registerToDelete] = undefined;
 }
 
 function getBounceBulletAngle(bulletVector, t1, t2) {
@@ -651,6 +678,20 @@ function drawBackground() {
   }
   ctx.stroke();
   ctx.globalAlpha = 1;
+
+  //also background stuff like see where tower and wall would spawn
+  if (typeof player.connectedTo === "number") {
+    let connectedTower = mapData.towers[player.team][player.connectedTo];
+    ctx.beginPath();
+    ctx.strokeStyle = colors[`f${player.team}`];
+    ctx.lineWidth = 5;
+    ctx.moveTo(fov.width / 2, fov.height / 2);
+    ctx.lineTo(
+      relToPlayer.x(connectedTower.x),
+      relToPlayer.y(connectedTower.y)
+    );
+    ctx.stroke();
+  }
 }
 
 function drawObstacles() {
@@ -710,7 +751,7 @@ function drawObstacles() {
       ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
       ctx.stroke();
       ctx.strokeStyle = colors[wallSet[0]];
-      ctx.lineWidth = WALL_WIDTH - 3;
+      ctx.lineWidth = WALL_WIDTH - 4;
       ctx.beginPath();
       ctx.moveTo(relToPlayer.x(sX), relToPlayer.y(sY));
       ctx.lineTo(relToPlayer.x(eX), relToPlayer.y(eY));
