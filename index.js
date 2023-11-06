@@ -1006,7 +1006,6 @@ function resetMap() {
   mapData.bombs = permanentMapData.bombs;
 }
 
-setup();
 
 function checkSettings() {
   //let url = window.location.search;
@@ -1017,4 +1016,5 @@ function checkSettings() {
       resetMap();
     }
   }
+  setup();
 }
