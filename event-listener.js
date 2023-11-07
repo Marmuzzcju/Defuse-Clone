@@ -49,6 +49,9 @@ document.addEventListener('keyup', (event) => {
             player.movement.right = 0;
             break;
         }
+        case ' ':{//spacebar
+            player.wantsToBuild = true;
+        }
     }
 })
 
