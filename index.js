@@ -12,6 +12,7 @@ const TOWER_WIDTH = 13;
 const PLAYER_WIDTH = 5;
 const GRID_WIDTH = 44;
 const UNIT_WIDTH = GRID_WIDTH / 2;
+const MAX_WALL_LENGTH = 15 * GRID_WIDTH;
 
 const MAX_DELTA = 0.1;
 
@@ -160,13 +161,13 @@ const permanentMapData = {
   height: 1000,
   towers: {
     1: [
-      { x: 0, y: 0, t: 1 },
-      { x: 30, y: 10, t: 1 },
-      { x: 800, y: 200, t: 1 },
-      { x: 445, y: 943, t: 1 },
-      { x: 700, y: 50, t: 1 },
-      { x: 200, y: 10, t: 1 },
-      { x: 800, y: 800, t: 1 },
+      { x: 0, y: 0 },
+      { x: 30, y: 10 },
+      { x: 800, y: 200 },
+      { x: 445, y: 943 },
+      { x: 700, y: 50 },
+      { x: 200, y: 10 },
+      { x: 800, y: 800 },
     ], //grey
     2: [], //blue
     3: [], //red
@@ -438,7 +439,7 @@ function checkBuild() {
               x,
               y
             ) <
-              WALL_WIDTH + 2 * BULLET_WIDTH &&
+              WALL_WIDTH + 2 * TOWER_WIDTH &&
             wall[2] != 1
           )
             canBuildHere = false;
@@ -447,13 +448,52 @@ function checkBuild() {
     });
   }
   if (canBuildHere) {
-    mapData.towers[player.team].push({ x: x, y: y, id: towerRegister.length });
     if (typeof player.connectedTo === "number") {
-      mapData.walls[player.team].push([
-        mapData.towers[player.team][player.connectedTo].id,
-        towerRegister.length,
-      ]);
+      //check if wall would intersect any other wall, would be too close to other towers or is too long
+      let tX = mapData.towers[player.team][player.connectedTo].x;
+      let tY = mapData.towers[player.team][player.connectedTo].y;
+      let wallLength = Math.sqrt(Math.pow(x - tX, 2) + Math.pow(y - tY, 2));
+      if (wallLength < MAX_WALL_LENGTH) {
+        //only if wall is not too long
+        let wallCanBePlaced = true;
+        Object.entries(mapData.towers).forEach((towerSet) => {
+          if (towerSet[0] != 1) {
+            towerSet[1].forEach((tower, index) => {
+              if (index != player.connectedTo) {
+                let tDtWall = getDistanceToLine(x, y, tX, tY, tower.x, tower.y);
+                if (tDtWall < WALL_WIDTH + 2 * TOWER_WIDTH) {
+                  wallCanBePlaced = false;
+                }
+              }
+            });
+          }
+        });
+        if(wallCanBePlaced){
+          Object.entries(mapData.walls).forEach((wallSet) => {
+            wallSet[1].forEach(wall => {
+              if(wallCanBePlaced){
+                let t1 = mapData.towers[towerRegister[wall[0]].t][towerRegister[wall[0]].ar];
+                let t2 = mapData.towers[towerRegister[wall[1]].t][towerRegister[wall[1]].ar];
+                if(isIntersecting(x, y, tX, tY, t1.x, t1.y, t2.x, t2.y)){
+                  wallCanBePlaced = false;
+                }
+              }
+            })
+          })
+        }
+        if (wallCanBePlaced) {
+          mapData.walls[player.team].push([
+            mapData.towers[player.team][player.connectedTo].id,
+            towerRegister.length,
+          ]);
+        } else {
+          console.log(
+            `Unfortunate we cannot place a wall here :(`
+          );
+        }
+      }
     }
+    mapData.towers[player.team].push({ x: x, y: y, id: towerRegister.length });
     towerRegister.push({
       ar: mapData.towers[player.team].length - 1,
       t: player.team,
@@ -644,6 +684,18 @@ function getDistanceToLine(wall1X, wall1Y, wall2X, wall2Y, point3X, point3Y) {
 
   return Infinity; // Point is not near the line
 } //thx to alex
+
+function isIntersecting(a,b,c,d,p,q,r,s) {
+  var det, gamma, lambda;
+  det = (c - a) * (s - q) - (r - p) * (d - b);
+  if (det === 0) {
+    return false;
+  } else {
+    lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+    gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+    return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+  }
+};
 
 //such as fps, igshop etc.
 function updateOtherStuff() {
