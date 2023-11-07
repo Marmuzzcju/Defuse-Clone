@@ -212,7 +212,7 @@ const gameData = {
   bullets: [],
 };
 
-let towerRegister = {};
+let towerRegister = [];
 
 //images
 const images = {
@@ -447,10 +447,17 @@ function checkBuild() {
     });
   }
   if (canBuildHere) {
-    mapData.towers[player.team].push({ x: x, y: y, t: 2 });
-    /*if (typeof player.connectedTo === "number") {
-      mapData.walls[player.team].push([])
-    }*/
+    mapData.towers[player.team].push({ x: x, y: y, id: towerRegister.length });
+    if (typeof player.connectedTo === "number") {
+      mapData.walls[player.team].push([
+        mapData.towers[player.team][player.connectedTo].id,
+        towerRegister.length,
+      ]);
+    }
+    towerRegister.push({
+      ar: mapData.towers[player.team].length - 1,
+      t: player.team,
+    });
   }
 }
 
@@ -840,7 +847,7 @@ function buildMap(rawFile = "", format = "defly") {
   permanentMapData.areas = { 1: [], 2: [], 3: [], 4: [] };
   permanentMapData.bombs = [];
   permanentMapData.spawns = [];
-  towerRegister = {};
+  towerRegister = [];
   switch (format) {
     case "defly": {
       let newMapData = mapFile.split(/\s+/);
@@ -966,10 +973,10 @@ function buildMap(rawFile = "", format = "defly") {
           x: tower[0] * UNIT_WIDTH,
           y: tower[1] * UNIT_WIDTH,
         });
-        towerRegister[index + 1].push({
+        towerRegister[index + 1] = {
           t: t,
           ar: permanentMapData.towers[t].length,
-        });
+        };
         //walls
         for (let c = 3; c < tower.length; c++) {
           permanentMapData.walls[t].push([index + 1, Number(tower[c]) - 1]);
@@ -994,6 +1001,7 @@ function buildMap(rawFile = "", format = "defly") {
   /*let newMapData = JSON.parse(mapFile);
   mapFile.width = newMapData.width;for different map formats later
   mapFile.height = newMapData.height;*/
+  resetMap();
 }
 
 function resetMap() {
@@ -1006,14 +1014,12 @@ function resetMap() {
   mapData.bombs = permanentMapData.bombs;
 }
 
-
 function checkSettings() {
   //let url = window.location.search;
   if (typeof Storage !== undefined) {
     let mapToBuild = localStorage.getItem("auto-saved-map");
     if (!!mapToBuild) {
       buildMap(mapToBuild, "defly");
-      resetMap();
     }
   }
   setup();
