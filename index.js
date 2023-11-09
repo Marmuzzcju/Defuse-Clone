@@ -599,21 +599,26 @@ function deleteTower(team, towerIndex) {
   let registerToDelete = 0;
   towerRegister.forEach((dataSet, regIndex) => {
     if (dataSet.t == team) {
-      if (ar == index) {
+      if (dataSet.ar == towerIndex) {
         registerToDelete = regIndex;
-      } else if (ar > index) {
+      } else if (dataSet.ar > towerIndex) {
         dataSet.ar--;
       }
     }
   });
+  let wallsToDelete = [];
   mapData.walls[team].forEach((wall, index) => {
     if (
       towerRegister[wall[0]].ar == towerIndex ||
       towerRegister[wall[1]].ar == towerIndex
     ) {
-      mapData.walls[team].splice(index, 1);
+      wallsToDelete.push(index);
     }
   });
+  console.log(`Walls to be deleted: ${wallsToDelete.length}  -  ${wallsToDelete}`)
+  wallsToDelete.forEach((index, counter) => {
+    mapData.walls[team].splice(index - counter, 1);
+  })
   mapData.areas[team].forEach((area, index) => {
     let hasToBeDeleted = false;
     for (let c = 0; c < area.length; c++) {
@@ -626,7 +631,7 @@ function deleteTower(team, towerIndex) {
       mapData.areas[team].splice(index, 1);
     }
   });
-  towerRegister[registerToDelete] = undefined;
+  delete towerRegister[registerToDelete];
 }
 
 function getBounceBulletAngle(bulletVector, t1, t2) {
